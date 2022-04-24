@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -11,25 +12,12 @@ import (
 
 var i = 0
 
-type HttpBody struct {
-	body string
-	error
-}
-
 func main() {
 	startServer()
 
-	ch := make(chan HttpBody)
-	for i := 0; i < 10; i++ {
-		go downloadPage(ch)
-	}
-
+	ch := downloadPages(10)
 	for response := range ch {
-		if response.error != nil {
-			fmt.Print(`Error!:`, response)
-		}
-
-		fmt.Println(response.body)
+		fmt.Println(response)
 	}
 }
 
@@ -38,9 +26,12 @@ func startServer() {
 	mux.HandleFunc("/", handleHttpRequest)
 
 	// Ensure socket is created synchronously.
-	socket, _ := net.Listen(`tcp4`, `localhost:http`)
-	server := http.Server{Handler: mux}
+	socket, err := net.Listen(`tcp4`, `localhost:http`)
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	server := http.Server{Handler: mux}
 	go server.Serve(socket)
 }
 
@@ -57,16 +48,30 @@ func pad(str string, n int) string {
 	return str
 }
 
-func downloadPage(ch chan<- HttpBody) {
+func downloadPages(n int) <-chan string {
+	ch := make(chan string)
+
+	for i := 0; i < n; i++ {
+		go func() {
+			if err := downloadPage(ch); err != nil {
+				fmt.Println(`Error:`, err)
+			}
+		}()
+	}
+
+	return ch
+}
+
+func downloadPage(ch chan<- string) error {
 	resp, err := http.Get("http://localhost")
-
 	if err != nil {
-		ch <- HttpBody{``, err}
-
-		return
+		return err
 	}
 
 	bytes, err := io.ReadAll(resp.Body)
+	if err == nil {
+		ch <- string(bytes)
+	}
 
-	ch <- HttpBody{string(bytes), err}
+	return err
 }
