@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var pageId = 0
@@ -15,8 +16,7 @@ var pageId = 0
 func main() {
 	startServer()
 
-	ch := downloadPages(10)
-	for response := range ch {
+	for response := range downloadPages(10) {
 		fmt.Println(response)
 	}
 }
@@ -32,7 +32,11 @@ func startServer() {
 	}
 
 	server := http.Server{Handler: mux}
-	go server.Serve(socket)
+	go func() {
+		if err := server.Serve(socket); err != nil {
+			log.Fatal(err)
+		}
+	}()
 }
 
 func handleHttpRequest(writer http.ResponseWriter, request *http.Request) {
@@ -50,14 +54,23 @@ func pad(str string, n int) string {
 
 func downloadPages(n int) <-chan string {
 	ch := make(chan string)
+	waitGroup := sync.WaitGroup{}
+	waitGroup.Add(n)
 
 	for i := 0; i < n; i++ {
 		go func() {
+			defer waitGroup.Done()
+
 			if err := downloadPage(ch); err != nil {
 				fmt.Println(`Error:`, err)
 			}
 		}()
 	}
+
+	go func() {
+		waitGroup.Wait()
+		close(ch)
+	}()
 
 	return ch
 }
