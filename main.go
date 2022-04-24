@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var i = 0
+var pageId = 0
 
 func main() {
 	startServer()
@@ -25,7 +25,7 @@ func startServer() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handleHttpRequest)
 
-	// Ensure socket is created synchronously.
+	// Ensure socket is created synchronously so server is ready to accept connections before first request is made.
 	socket, err := net.Listen(`tcp4`, `localhost:http`)
 	if err != nil {
 		log.Fatal(err)
@@ -36,8 +36,8 @@ func startServer() {
 }
 
 func handleHttpRequest(writer http.ResponseWriter, request *http.Request) {
-	i++
-	writer.Write([]byte(pad(strconv.Itoa(i), 2)))
+	pageId++
+	writer.Write([]byte(pad(strconv.Itoa(pageId), 2)))
 }
 
 func pad(str string, n int) string {
