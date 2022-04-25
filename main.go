@@ -24,7 +24,9 @@ func startServer() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		writer.Write([]byte(pad(strconv.Itoa(<-pageIdGenerator), 2)))
+		if _, err := writer.Write([]byte(pad(strconv.Itoa(<-pageIdGenerator), 2))); err != nil {
+			log.Fatal(err)
+		}
 	})
 
 	// Ensure socket is created synchronously so server is ready to accept connections before first request is made.
