@@ -11,8 +11,6 @@ import (
 	"sync"
 )
 
-var pageId = 0
-
 func main() {
 	startServer()
 
@@ -22,8 +20,12 @@ func main() {
 }
 
 func startServer() {
+	pageIdGenerator := createSequence()
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", handleHttpRequest)
+	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+		writer.Write([]byte(pad(strconv.Itoa(<-pageIdGenerator), 2)))
+	})
 
 	// Ensure socket is created synchronously so server is ready to accept connections before first request is made.
 	socket, err := net.Listen(`tcp4`, `localhost:http`)
@@ -39,9 +41,16 @@ func startServer() {
 	}()
 }
 
-func handleHttpRequest(writer http.ResponseWriter, request *http.Request) {
-	pageId++
-	writer.Write([]byte(pad(strconv.Itoa(pageId), 2)))
+func createSequence() <-chan int {
+	ch := make(chan int)
+
+	go func() {
+		for i := 1; ; i++ {
+			ch <- i
+		}
+	}()
+
+	return ch
 }
 
 func pad(str string, n int) string {
