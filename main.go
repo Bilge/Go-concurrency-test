@@ -3,11 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
-	"net"
 	"net/http"
-	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -17,50 +13,6 @@ func main() {
 	for response := range downloadPages(10) {
 		fmt.Println(response)
 	}
-}
-
-func startServer() {
-	pageIdGenerator := createSequence()
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		if _, err := writer.Write([]byte(pad(strconv.Itoa(<-pageIdGenerator), 2))); err != nil {
-			log.Fatal(err)
-		}
-	})
-
-	// Ensure socket is created synchronously so server is ready to accept connections before first request is made.
-	socket, err := net.Listen(`tcp4`, `localhost:http`)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	server := http.Server{Handler: mux}
-	go func() {
-		if err := server.Serve(socket); err != nil {
-			log.Fatal(err)
-		}
-	}()
-}
-
-func createSequence() <-chan int {
-	ch := make(chan int)
-
-	go func() {
-		for i := 1; ; i++ {
-			ch <- i
-		}
-	}()
-
-	return ch
-}
-
-func pad(str string, n int) string {
-	if len(str) < n {
-		return strings.Repeat(`0`, n-len(str)) + str
-	}
-
-	return str
 }
 
 func downloadPages(n int) <-chan string {

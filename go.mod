@@ -1,3 +1,3 @@
-module awesomeProject
+module concurrency-test
 
 go 1.18
