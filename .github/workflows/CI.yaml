@@ -1,0 +1,14 @@
+name: CI
+
+on:
+  push:
+
+jobs:
+  Test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run tests
+        run: sudo go test -v
