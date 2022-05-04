@@ -1,6 +1,6 @@
 package main
 
-func ExampleMain() {
+func Example() {
 	main()
 
 	// Unordered output:
